@@ -1617,12 +1617,20 @@ if st.session_state['current_page'] == 'visualisations':
                                 # Convert grade to a numeric type for sorting, coercing errors for non-numeric grades
                                 group_avg[matched_group_col] = pd.to_numeric(group_avg[matched_group_col], errors='coerce')
                                 group_avg = group_avg.sort_values(by=matched_group_col).dropna(subset=[matched_group_col])
-
+                                # Convert back to string for plotting, ensuring it's handled as a category
+                                group_avg[matched_group_col] = group_avg[matched_group_col].astype(int).astype(str)
                             with col_slots[chart_index % 2]:
                                 # Convert the grouping column to string for discrete color mapping
                                 group_avg_display = group_avg.copy()
                                 group_avg_display[matched_group_col] = group_avg_display[matched_group_col].astype(str)
-                                
+
+                                # Define category_orders to ensure Grade is treated as a category from the start.
+                                # This is the most robust way to prevent annotation misalignment.
+                                category_orders = {}
+                                if label == "Grade":
+                                    sorted_grades = group_avg_display[matched_group_col].tolist()
+                                    category_orders[matched_group_col] = sorted_grades
+
                                 fig = px.bar(
                                     group_avg_display,
                                     x=matched_group_col,
@@ -1632,8 +1640,10 @@ if st.session_state['current_page'] == 'visualisations':
                                     labels={matched_group_col: label, "AvgScore": "Avg Score"},
                                     height=400,
                                     color=matched_group_col,
-                                    color_discrete_sequence=px.colors.qualitative.Set3
+                                    color_discrete_sequence=px.colors.qualitative.Set3,
+                                    category_orders=category_orders
                                 )
+
                                 fig.update_traces(
                                     texttemplate='N=%{text}',
                                     textposition='inside',
@@ -1649,18 +1659,19 @@ if st.session_state['current_page'] == 'visualisations':
                                         showarrow=False,
                                         yshift=20,  # Moved above the bar
                                         font=dict(color='white'),
-                                        bgcolor='rgba(0,0,0,0.5)'
+                                        bgcolor='rgba(0,0,0,0.5)',
                                     )
                                 max_y = group_avg["AvgScore"].max()
                                 fig.update_layout(
                                     margin=dict(t=50),
                                     yaxis=dict(range=[0, max_y + 0.6]),  # Added space for annotations on top
                                 )
-                                # For the Grade chart, explicitly set the x-axis to 'category'.
-                                # This is the most reliable way to prevent Plotly from creating a
-                                # continuous axis with decimal points for numeric-like labels.
+                                # For the Grade chart, explicitly set the tick values and labels.
+                                # This is the most robust way to handle the single-point case,
+                                # ensuring the bar sits over the integer label, not a decimal.
                                 if label == "Grade":
-                                    fig.update_xaxes(type='category')
+                                    grade_ticks = group_avg_display[matched_group_col].tolist()
+                                    fig.update_xaxes(tickvals=grade_ticks, ticktext=grade_ticks)
                                 config = {
                                     'displayModeBar': True,
                                     'modeBarButtonsToRemove': [
