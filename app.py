@@ -71,6 +71,9 @@ def hash_password(password, salt):
 # Function to create a new user account in Google Sheet
 def create_user_account(school_id, password, email, school_name, logo_file):
     try:
+        # --- Password Policy Validation ---
+        if len(password) < 6:
+            return False, "Password must be at least 6 characters long."
         sheet = connect_to_google_sheet("Apnapan User Accounts")
         all_school_ids = sheet.col_values(1)
         if school_id in all_school_ids:
