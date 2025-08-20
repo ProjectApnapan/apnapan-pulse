@@ -1,4 +1,4 @@
-import streamlit as st # test 
+import streamlit as st 
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -161,7 +161,6 @@ def update_user_password(school_id, new_password):
     except Exception as e:
         return False, f"An error occurred while updating password: {str(e)}"
     
-
 @st.cache_data(ttl=3600)  # Cache for 1 hour to reduce API calls
 def get_school_details(school_id):
     try:
@@ -179,8 +178,7 @@ def get_school_details(school_id):
     except Exception as e:
         st.error(f"Error fetching school details: {str(e)}")
         return None, None
-
-
+    
 # Function to get MIME type for file download
 def get_mime_type(filename):
     """Returns the MIME type based on the file extension."""
@@ -457,19 +455,19 @@ if st.session_state['current_page'] == 'login':
         """, unsafe_allow_html=True)
 
         if login_button:
-            success, message = validate_login(school_id, password)
-            if success:
-                st.session_state['logged_in_user'] = school_id  # Store user's ID
-                st.success(message)
-                # Fetch and store school details in session state to avoid repeated API calls
-                with st.spinner("Loading school details..."):
-                    school_name, school_logo_base64 = get_school_details(school_id)
-                    st.session_state['school_name'] = school_name
-                    st.session_state['school_logo_base64'] = school_logo_base64
-                navigate_to('landing')
-                st.rerun()
-            else:
-                st.error(message)
+                success, message = validate_login(school_id, password)
+                if success:
+                    st.session_state['logged_in_user'] = school_id  # Store user's ID
+                    st.success(message)
+                    # Fetch and store school details in session state to avoid repeated API calls
+                    with st.spinner("Loading school details..."):
+                        school_name, school_logo_base64 = get_school_details(school_id)
+                        st.session_state['school_name'] = school_name
+                        st.session_state['school_logo_base64'] = school_logo_base64
+                    navigate_to('landing')
+                    st.rerun()
+                else:
+                    st.error(message)
 
         if create_account_button:
             navigate_to('create_account')
@@ -821,6 +819,7 @@ def process_data_and_calculate_metrics(df):
     results = {
         'df_cleaned': df_cleaned,
         'matched_questions': matched_questions,
+        'demographic_keywords' : demographic_keywords,
         'belonging_questions': belonging_questions,
         'overall_belonging_score': overall_belonging_score,
         'category_averages': category_averages,
@@ -915,8 +914,8 @@ if st.session_state['current_page'] == 'landing':
                 <span style="font-weight:600;">
                     Download a Custom Report</span>
                 <br>
-                    <span>Click the <span style="color:#003366; font-weight:bold; background:#a3d8d3; padding:2px 6px; border-radius:4px;">Generate Report</span>
-                    button to get key insights and charts in a PDF format to share with your team!
+                    <span>Click the <span style="color:#003366; font-weight:bold; background:#a3d8d3; padding:2px 6px; border-radius:4px;">Report Generation</span>
+                    button to get key insights and charts in a customisable PDF format to share with your team!
                 </span>
             </div>
         </div>
@@ -955,10 +954,6 @@ if st.session_state['current_page'] == 'landing':
             # Clear user-specific session state to effectively log out
             if 'logged_in_user' in st.session_state:
                 del st.session_state['logged_in_user']
-            if 'school_name' in st.session_state:
-                del st.session_state['school_name']
-            if 'school_logo_base64' in st.session_state:
-                del st.session_state['school_logo_base64']
             if 'df_cleaned' in st.session_state:
                 del st.session_state['df_cleaned']
             navigate_to('login')
@@ -973,6 +968,10 @@ questionnaire_mapping = {
     "Agree": 4,
     "Strongly Agree": 5
 }
+# Add a "Back" button to navigate to the landing page
+if st.button("Back to Landing Page", key="back_button"):
+    navigate_to('landing')
+    st.rerun()
     
 # Main Page
 if st.session_state['current_page'] == 'main':
@@ -1201,7 +1200,7 @@ if st.session_state['current_page'] == 'metrics':
                             {school_logo_html}
                             {school_name_html}
                         </div>
-                    """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True) 
         st.header("Key Metrics (Scale of 5)")
 
         # --- Retrieve pre-calculated results from session state ---
@@ -1358,7 +1357,7 @@ if st.session_state['current_page'] == 'metrics':
 
         # Explore and Customize
 if st.session_state['current_page'] == 'visualisations':
-    # Header with Project Apnapan logo and school details on the same line
+        # Header with Project Apnapan logo and school details on the same line
         col1, col2 = st.columns([4, 4])  # Adjust column widths for alignment
 
         with col1:
@@ -1391,7 +1390,7 @@ if st.session_state['current_page'] == 'visualisations':
                             {school_name_html}
                         </div>
                     """, unsafe_allow_html=True)
-                    
+                
         st.header("Visualization Tab")
         # --- Retrieve previously saved values into the same variable names ---
         df_cleaned = st.session_state.get("df_cleaned", None)
@@ -1474,14 +1473,14 @@ if st.session_state['current_page'] == 'visualisations':
                         if num_categories > 3 or any(len(str(cat)) > 8 for cat in value_counts[label]):
                             fig.update_traces(
                                 textposition='auto',
-                                textinfo='percent',
+                                textinfo='value',
                                 textfont=dict(size=15),
                                 marker=dict(line=dict(color='#000000', width=1))
                             )
                         else:
                             fig.update_traces(
                                 textposition='auto',
-                                textinfo='percent',
+                                textinfo='value',
                                 textfont=dict(size=15)
                             )
 
@@ -1620,8 +1619,12 @@ if st.session_state['current_page'] == 'visualisations':
                                 group_avg = group_avg.sort_values(by=matched_group_col).dropna(subset=[matched_group_col])
 
                             with col_slots[chart_index % 2]:
+                                # Convert the grouping column to string for discrete color mapping
+                                group_avg_display = group_avg.copy()
+                                group_avg_display[matched_group_col] = group_avg_display[matched_group_col].astype(str)
+                                
                                 fig = px.bar(
-                                    group_avg,
+                                    group_avg_display,
                                     x=matched_group_col,
                                     y="AvgScore",
                                     text="Count",
@@ -1638,20 +1641,20 @@ if st.session_state['current_page'] == 'visualisations':
                                     insidetextanchor='middle',
                                     hovertemplate="%{x}<br>Avg Score: %{y:.2f}<br>Students: %{text}<extra></extra>"
                                 )
-                                for i, row in group_avg.iterrows():
+                                for i, row in group_avg_display.iterrows():
                                     fig.add_annotation(
                                         x=row[matched_group_col],
                                         y=row["AvgScore"],
                                         text=f"Avg={row['AvgScore']:.2f}",
                                         showarrow=False,
-                                        yshift=10,
+                                        yshift=20,  # Moved above the bar
                                         font=dict(color='white'),
                                         bgcolor='rgba(0,0,0,0.5)'
                                     )
                                 max_y = group_avg["AvgScore"].max()
                                 fig.update_layout(
                                     margin=dict(t=50),
-                                    yaxis=dict(range=[0, max_y + 0.5]),
+                                    yaxis=dict(range=[0, max_y + 0.6]),  # Added space for annotations on top
                                 )
                                 # For the Grade chart, explicitly set the x-axis to 'category'.
                                 # This is the most reliable way to prevent Plotly from creating a
@@ -1677,9 +1680,9 @@ if st.session_state['current_page'] == 'visualisations':
                                     'displaylogo': False
                                 }
                                 st.plotly_chart(fig, use_container_width=True, config=config)
-                            chart_index += 1
-                        else:
-                            st.info(f"No data found for {label}.")
+                                chart_index += 1
+                            # else:
+                            #      st.info(f"No data found for {label}.")
 
                 # 🎯 Breakdown by Group (Percentage)
             st.markdown("### Breakdown by Group (Percentage)")
@@ -1809,13 +1812,10 @@ if st.session_state['current_page'] == 'data_table':
                         {school_name_html}
                     </div>
                 """, unsafe_allow_html=True)
+                
     st.header(" Data Tables")
-
-    # Initialize state for PDF generation to prevent re-generation on every interaction
-    if 'pdf_buffer' not in st.session_state:
-        st.session_state.pdf_buffer = None
-
-    # ---- pull from session_state (no hardcoded numbers) ----
+    
+     # ---- pull from session_state (no hardcoded numbers) ----
     df_cleaned          = st.session_state.get("df_cleaned", None)
     matched_questions   = st.session_state.get("matched_questions", {})
     category_averages   = st.session_state.get("category_averages", {})
@@ -1823,19 +1823,6 @@ if st.session_state['current_page'] == 'data_table':
     highest_area        = st.session_state.get("highest_area", None)
     lowest_area         = st.session_state.get("lowest_area", None)
 
-    # ---- Fetch school details for the report ----
-    school_name = "Your School" # Default
-    school_logo_base64 = None
-    if 'logged_in_user' in st.session_state:
-        name = st.session_state.get('school_name')
-        logo = st.session_state.get('school_logo_base64')
-        if name:
-            school_name = name
-        if logo:
-            school_logo_base64 = logo
-
-    date_today  = date.today().strftime("%d %B, %Y")
-    n_students  = int(df_cleaned.shape[0]) if isinstance(df_cleaned, pd.DataFrame) else 0
 
     # ---- Tables (as you had) ----
     st.write("### Data Preview")
@@ -1871,6 +1858,83 @@ if st.session_state['current_page'] == 'data_table':
         st.session_state["summary_table"] = summary
     else:
         st.info("No cleaned data available.")
+
+    
+
+    colA, colB = st.columns([1, 1])
+    with colA:
+        if st.button(" Back to Visualisations", use_container_width=True):
+            navigate_to('visualisations')
+            st.rerun()
+    with colB:
+        if st.button(" Go to Report Generation" , use_container_width=True):
+            navigate_to('customise')
+            st.rerun()
+
+
+if st.session_state['current_page']=='customise':
+    # Header with Project Apnapan logo and school details on the same line
+    col1, col2 = st.columns([4, 4])  # Adjust column widths for alignment
+
+    with col1:
+        # Project Apnapan logo and name
+        st.markdown(f"""
+            <div class="custom-logo">
+                <img src="data:image/png;base64,{logo_base64}" alt="Project Apnapan Logo" />
+                <span>Project Apnapan</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        # School logo and name
+        if 'logged_in_user' in st.session_state:
+            school_name = st.session_state.get('school_name')
+            school_logo_base64 = st.session_state.get('school_logo_base64')
+
+            school_logo_html = ""
+            if school_logo_base64:
+                school_logo_html = f'<img src="data:image/png;base64,{school_logo_base64}" alt="School Logo" style="height: 50px;" />'
+
+            school_name_html = ""
+            if school_name:
+                school_name_html = f'<h4 style="margin: 0; color: #003366 !important;">{school_name}</h4>'
+
+            if school_logo_html or school_name_html:
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 10px;">
+                        {school_logo_html}
+                        {school_name_html}
+                    </div>
+                """, unsafe_allow_html=True)
+    st.header("Report Generation:")
+    st.write("Here you can generate a general report and you can also select categories and custom options for your report!")
+     
+    # Initialize state for PDF generation to prevent re-generation on every interaction
+    if 'pdf_buffer' not in st.session_state:
+        st.session_state.pdf_buffer = None
+
+    # ---- pull from session_state (no hardcoded numbers) ----
+    df_cleaned          = st.session_state.get("df_cleaned", None)
+    matched_questions   = st.session_state.get("matched_questions", {})
+    category_averages   = st.session_state.get("category_averages", {})
+    overall_belonging   = st.session_state.get("overall_belonging_score", None)
+    highest_area        = st.session_state.get("highest_area", None)
+    lowest_area         = st.session_state.get("lowest_area", None)
+    demographic_keywords= st.session_state.get("demographic_keywords", None)
+     
+    # ---- Fetch school details for the report ----
+    school_name = "your school" # Default
+    school_logo_base64 = None
+    if 'logged_in_user' in st.session_state:
+        school_id = st.session_state['logged_in_user']
+        name, logo = get_school_details(school_id)
+        if name:
+            school_name = name
+        if logo:
+            school_logo_base64 = logo
+
+    date_today  = date.today().strftime("%d %B, %Y")
+    n_students  = int(df_cleaned.shape[0]) if isinstance(df_cleaned, pd.DataFrame) else 0
 
     # ========= PDF GENERATION =========
     # helpers to draw pies with matplotlib and return BytesIO for ReportLab
@@ -1972,135 +2036,1081 @@ if st.session_state['current_page'] == 'data_table':
                          ("BOX", (0,0), (-1,-1), 0, colors.white),
                          ("INNERGRID", (0,0), (-1,-1), 0, colors.white),
                      ]))
+    def generate_custom_pdf(school_name, school_logo_base64, apnapan_logo_base64, 
+                       selected_construct, selected_charts, chart_options,
+                       df_cleaned, matched_questions, category_averages, 
+                       overall_belonging, date_today, n_students):
+        """Generate a custom PDF report based on user selections with enhanced styling"""
+    
+        # Add income category if possessions column exists
+        if isinstance(df_cleaned, pd.DataFrame) and not df_cleaned.empty:
+            possessions_col = next((col for col in df_cleaned.columns 
+                                if "what items among these do you have at home".lower() in col.lower()), None)
+            if possessions_col:
+                df_cleaned["Income Category"] = df_cleaned[possessions_col].apply(categorize_income)
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=28, rightMargin=28, topMargin=28, bottomMargin=28)
+        styles = getSampleStyleSheet()
+        
+        # Enhanced custom styles (matching general report)
+        title_style = ParagraphStyle("TitleStyle", parent=styles["Title"], fontSize=20, alignment=1, 
+                                    textColor=colors.HexColor("#2E3440"), spaceAfter=8, spaceBefore=0,
+                                    fontName="Helvetica-Bold")
+        subtitle_style = ParagraphStyle("SubtitleStyle", parent=styles["Title"], fontSize=16, alignment=1, 
+                                    textColor=colors.HexColor("#5E81AC"), spaceAfter=6)
+        small_grey = ParagraphStyle("SmallGrey", parent=styles["Normal"], fontSize=9, alignment=2, 
+                                textColor=colors.HexColor("#666"))
+        header_style = ParagraphStyle("HeaderStyle", parent=styles["Heading2"], fontSize=14, alignment=0, 
+                                    textColor=colors.HexColor("#2E3440"), spaceBefore=20, spaceAfter=10,
+                                    fontName="Helvetica-Bold", borderWidth=1, borderColor=colors.HexColor("#E5E7EB"),
+                                    borderPadding=5, backColor=colors.HexColor("#F9FAFB"))
+        subheader_style = ParagraphStyle("SubHeaderStyle", parent=styles["Heading3"], fontSize=12, alignment=0, 
+                                        textColor=colors.HexColor("#374151"), spaceBefore=12, spaceAfter=8,
+                                        fontName="Helvetica-Bold")
+        note_style = ParagraphStyle("NoteStyle", parent=styles["Normal"], fontSize=10, textColor=colors.HexColor("#4B5563"))
+        highlight_style = ParagraphStyle("HighlightStyle", parent=styles["Normal"], fontSize=10, 
+                                        textColor=colors.HexColor("#1F2937"), backColor=colors.HexColor("#F3F4F6"),
+                                        borderWidth=1, borderColor=colors.HexColor("#D1D5DB"), borderPadding=8,
+                                        spaceAfter=10, spaceBefore=10)
+        
+        story = []
+        
+        # --- Enhanced PDF Header ---
+        apnapan_logo_img = Paragraph(" ", styles['Normal'])
+        if apnapan_logo_base64:
+            try:
+                apnapan_logo_bytes = io.BytesIO(base64.b64decode(apnapan_logo_base64))
+                apnapan_logo_img = Image(apnapan_logo_bytes, width=1*inch, height=1*inch)
+            except Exception:
+                pass
+
+        school_logo_img = Paragraph(" ", styles['Normal'])
+        if school_logo_base64:
+            try:
+                school_logo_bytes = io.BytesIO(base64.b64decode(school_logo_base64))
+                school_logo_img = Image(school_logo_bytes, width=1*inch, height=1*inch)
+            except Exception:
+                pass
+
+        # Enhanced center content for custom report
+        center_content = [
+            Paragraph("Apnapan Custom Report", title_style),
+            Paragraph(f"Focus Area: {selected_construct}", subtitle_style),
+            Paragraph(school_name, header_style)
+        ]
+
+        header_table = Table([[apnapan_logo_img, center_content, school_logo_img]], colWidths=[1.2*inch, 5.6*inch, 1.2*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LINEBELOW', (0, 0), (-1, -1), 2, colors.HexColor("#E5E7EB")),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+        ]))
+        story.append(header_table)
+        
+        # Date and report info
+        report_info = f"Generated on: {date_today} | Focus: {selected_construct} Analysis"
+        story.append(Paragraph(report_info, small_grey))
+        story.append(Spacer(1, 20))
+
+        # --- Executive Summary for Custom Report ---
+        story.append(Paragraph("Executive Summary", header_style))
+        
+        # Get construct-specific data
+        construct_score = category_averages.get(selected_construct, 0)
+        construct_questions = matched_questions.get(selected_construct, [])
+        
+        # Determine performance level for selected construct
+        if construct_score >= 4.0:
+            performance_level = "Excellent"
+            performance_color = "#10B981"
+        elif construct_score >= 3.5:
+            performance_level = "Good"
+            performance_color = "#3B82F6"
+        elif construct_score >= 3.0:
+            performance_level = "Fair"
+            performance_color = "#F59E0B"
+        else:
+            performance_level = "Needs Attention"
+            performance_color = "#EF4444"
+
+        summary_text = f"""
+        This custom report provides an in-depth analysis of <b>{selected_construct}</b> at {school_name}. 
+        The report includes {len(selected_charts)} selected visualizations to understand how this 
+        aspect of belonging varies across different student groups.
+        <br/><br/>
+        <b>Key Findings for {selected_construct}:</b><br/>
+        • Current score: <b>{construct_score:.2f}/5.0</b> ({performance_level})<br/>
+        • Based on responses from <b>{n_students}</b> students<br/>
+        • Analysis includes {len(construct_questions)} related survey questions<br/>
+        • Selected {len(selected_charts)} chart(s) for demographic breakdown analysis
+        """
+        story.append(Paragraph(summary_text, highlight_style))
+        story.append(Spacer(1, 15))
+
+        # --- Enhanced Key Metrics for Selected Construct ---
+        story.append(Paragraph(f"{selected_construct} - Key Metrics", header_style))
+        
+        # Enhanced bubble function (same as general report)
+        def enhanced_bubble(text, bg_hex, text_color="#FFFFFF"):
+            return Table(
+                [[Paragraph(text, ParagraphStyle("bub", fontSize=12, alignment=1, 
+                                            textColor=colors.HexColor(text_color),
+                                            leading=16))]],
+                colWidths=[2.4*inch], 
+                rowHeights=[1.1*inch],
+                style=TableStyle([
+                    ("BACKGROUND", (0,0), (-1,-1), colors.HexColor(bg_hex)),
+                    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                    ("ALIGN", (0,0), (-1,-1), "CENTER"),
+                    ("ROUNDEDCORNERS", [5, 5, 5, 5]),
+                    ("LINEWIDTH", (0,0), (-1,-1), 2),
+                    ("LINECOLOR", (0,0), (-1,-1), colors.HexColor("#E5E7EB")),
+                ])
+            )
+
+        # Key metrics for selected construct
+        construct_txt = f"<b>{selected_construct} Score</b><br/><br/><font size=20 color='{performance_color}'>{construct_score:.2f}</font><br/><font size=10>out of 5.0 ({performance_level})</font>"
+        n_txt = f"<b>Students Surveyed</b><br/><br/><font size=20>{n_students}</font><br/><font size=10>participants</font>"
+        
+        # Compare to overall belonging
+        comparison = "above" if construct_score > overall_belonging else "below" if construct_score < overall_belonging else "equal to"
+        comparison_txt = f"<b>vs Overall Belonging</b><br/><br/><font size=16>{comparison_color(construct_score, overall_belonging)}</font><br/><font size=10>{comparison} average ({overall_belonging:.2f})</font>"
+        
+        metrics_row = Table([[enhanced_bubble(construct_txt, "#F8FAFC", "#1F2937"), 
+                            enhanced_bubble(n_txt, "#F0F9FF", "#1F2937")]],
+                        colWidths=[3.2*inch, 3.2*inch])
+        story.append(metrics_row)
+        story.append(Spacer(1, 15))
+        
+        # Survey questions for this construct
+        if construct_questions:
+            story.append(Paragraph("Survey Questions Analyzed", subheader_style))
+            questions_text = ""
+            for i, question in enumerate(construct_questions[:5], 1):  # Limit to first 5 questions
+                questions_text += f"{i}. {question}<br/>"
+            if len(construct_questions) > 5:
+                questions_text += f"<i>... and {len(construct_questions) - 5} more questions</i>"
+            
+            story.append(Paragraph(questions_text, note_style))
+            story.append(Spacer(1, 20))
+
+        # --- Charts Section ---
+        story.append(Paragraph("Demographic Analysis Charts", header_style))
+        story.append(Paragraph(f"The following {len(selected_charts)} chart(s) show how {selected_construct} varies across different student groups:", note_style))
+        story.append(Spacer(1, 15))
+        
+        # Add selected charts with enhanced presentation
+        chart_count = 0
+        for i, chart_name in enumerate(selected_charts, 1):
+            chart_info = chart_options[chart_name]
+            chart_img = None
+            
+            # Generate chart based on type
+            if chart_info["type"] == "demographic_pie":
+                chart_img = generate_demographic_pie_for_pdf(df_cleaned, chart_info["keywords"], chart_name)
+            
+            elif chart_info["type"] == "construct_vs_demographic":
+                chart_img = generate_bar_chart_for_pdf(
+                    df_cleaned, construct_questions, chart_info["keywords"], 
+                    chart_name, chart_info["demographic"]
+                )
+            
+            elif chart_info["type"] == "percentage_breakdown":
+                chart_img = generate_percentage_breakdown_for_pdf(
+                    df_cleaned, construct_questions, chart_info["keywords"], chart_name
+                )
+            
+            # Add chart to PDF with enhanced styling
+            if chart_img:
+                # Chart number and title
+                chart_header = f"Chart {i}: {chart_name}"
+                story.append(Paragraph(chart_header, subheader_style))
+                story.append(Spacer(1, 6))
+                
+                try:
+                    # Adjust image size and add border
+                    if chart_info["type"] == "demographic_pie":
+                        chart_image = Image(chart_img, width=3.5*inch, height=3*inch)
+                    else:
+                        chart_image = Image(chart_img, width=6.5*inch, height=4.2*inch)
+                    
+                    # Create bordered chart container
+                    chart_container = Table([[chart_image]], colWidths=[7*inch])
+                    chart_container.setStyle(TableStyle([
+                        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#E5E7EB")),
+                        ('TOPPADDING', (0,0), (-1,-1), 10),
+                        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+                        ('LEFTPADDING', (0,0), (-1,-1), 10),
+                        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+                    ]))
+                    story.append(chart_container)
+                    
+                    # Add chart description
+                    story.append(Spacer(1, 8))
+                    story.append(Paragraph(chart_info["description"], note_style))
+                    story.append(Spacer(1, 20))
+                    chart_count += 1
+                    
+                except Exception as e:
+                    error_msg = f"Chart could not be generated: {chart_name}"
+                    story.append(Paragraph(error_msg, ParagraphStyle("Error", parent=note_style, 
+                                                                    textColor=colors.HexColor("#EF4444"))))
+                    story.append(Spacer(1, 15))
+
+        # --- Enhanced Insights Section ---
+        if chart_count > 0:
+            story.append(Paragraph("Key Insights & Observations", header_style))
+            
+            # Performance context
+            performance_context = ""
+            if construct_score >= 4.0:
+                performance_context = f"{selected_construct} shows excellent performance, indicating strong student experiences in this area."
+            elif construct_score >= 3.5:
+                performance_context = f"{selected_construct} shows good performance with room for targeted improvements."
+            elif construct_score >= 3.0:
+                performance_context = f"{selected_construct} shows fair performance and would benefit from focused interventions."
+            else:
+                performance_context = f"{selected_construct} requires immediate attention with comprehensive improvement strategies."
+            
+            insights_text = f"""
+            <b>Performance Analysis:</b><br/>
+            {performance_context}
+            <br/><br/>
+            <b>Chart Analysis:</b><br/>
+            • This report includes {chart_count} visualization(s) focusing on {selected_construct}<br/>
+            • Charts reveal how different demographic groups experience this aspect of belonging<br/>
+            • Look for patterns in scores across gender, grade level, and other demographic factors
+            <br/><br/>
+            <b>Survey Coverage:</b><br/>
+            • Analysis based on {len(construct_questions)} survey question(s)<br/>
+            • {n_students} student responses analyzed<br/>
+            • Current score: {construct_score:.2f}/5.0 compared to overall belonging score of {overall_belonging:.2f}/5.0
+            """
+            
+            story.append(Paragraph(insights_text, highlight_style))
+            story.append(Spacer(1, 20))
+
+        # --- Enhanced Recommendations ---
+        story.append(Paragraph("Targeted Recommendations", header_style))
+        
+        recommendations = []
+        
+        # Performance-based recommendations
+        if construct_score < 3.0:
+            recommendations.append(f"<b>Urgent Priority:</b> {selected_construct} requires immediate intervention (score: {construct_score:.2f})")
+            recommendations.append(f"<b>Root Cause Analysis:</b> Conduct focus groups to understand why {selected_construct} scores are low")
+        elif construct_score < 3.5:
+            recommendations.append(f"<b>Improvement Focus:</b> Develop targeted strategies to enhance {selected_construct}")
+            recommendations.append(f"<b>Best Practice Research:</b> Study schools with higher {selected_construct} scores")
+        else:
+            recommendations.append(f"<b>Maintain Excellence:</b> Continue successful practices that support {selected_construct}")
+            recommendations.append(f"<b>Share Success:</b> Document and share what's working well in {selected_construct}")
+        
+        # Chart-specific recommendations
+        recommendations.extend([
+            "<b>Demographic Analysis:</b> Use the charts to identify which student groups need additional support",
+            f"<b>Targeted Interventions:</b> Design specific programs addressing {selected_construct} gaps",
+            "<b>Progress Monitoring:</b> Resurvey in 6 months to measure improvement in this focus area",
+            "<b>Staff Development:</b> Train educators on strategies that enhance student " + selected_construct.lower()
+        ])
+
+        rec_text = "<br/>• ".join(recommendations)
+        story.append(Paragraph(f"• {rec_text}", note_style))
+        story.append(Spacer(1, 20))
+
+        # --- Customized Food for Thought ---
+        story.append(Paragraph("Reflection Questions", header_style))
+        
+        custom_questions = [
+            f"Which demographic groups show the strongest/weakest {selected_construct} scores?",
+            f"What specific school practices might be influencing {selected_construct} outcomes?",
+            f"How does {selected_construct} connect to other aspects of student belonging?",
+            f"What barriers might prevent students from experiencing strong {selected_construct}?",
+            f"Which interventions could most effectively improve {selected_construct} scores?",
+            f"How can high-performing groups in {selected_construct} mentor others?"
+        ]
+        
+        bullets = "<br/>".join([f"• {question}" for question in custom_questions])
+        story.append(Paragraph(bullets, note_style))
+        story.append(Spacer(1, 20))
+
+        # --- Enhanced Footer ---
+        footer_text = f"""
+        <br/><br/>
+        <font size=8 color='#6B7280'>
+        This custom report was generated by the Apnapan Pulse platform focusing on {selected_construct}. 
+        For additional analysis or support with action planning, please contact your Apnapan representative.
+        <br/>
+        Custom Report ID: AP-CUSTOM-{datetime.now().strftime('%Y%m%d')}-{selected_construct[:3].upper()}-{school_name[:3].upper()}
+        </font>
+        """
+        story.append(Paragraph(footer_text, ParagraphStyle("Footer", parent=styles["Normal"], 
+                                                        fontSize=8, alignment=1, 
+                                                        textColor=colors.HexColor("#6B7280"))))
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    # Helper function for comparison color
+    def comparison_color(construct_score, overall_score):
+        """Return colored text showing comparison to overall score"""
+        if construct_score > overall_score:
+            return f"<font color='#10B981'>+{(construct_score - overall_score):.2f}</font>"
+        elif construct_score < overall_score:
+            return f"<font color='#EF4444'>{(construct_score - overall_score):.2f}</font>"
+        else:
+            return f"<font color='#6B7280'>±0.00</font>"
+        
+    def generate_demographic_pie_for_pdf(df_cleaned, keywords, title):
+        """Generate demographic pie chart as BytesIO for PDF"""
+        if df_cleaned is None or df_cleaned.empty:
+            return None
+        
+        # Find matching column
+        matched_col = next((col for col in df_cleaned.columns 
+                        if any(k.lower() in col.lower() for k in keywords)), None)
+        
+        if not matched_col:
+            return None
+        
+        # Create pie chart data
+        counts = df_cleaned[matched_col].astype(str).replace({"nan": "Unknown"}).value_counts(dropna=False)
+        
+        if counts.empty:
+            return None
+        
+        # Generate pie chart using matplotlib
+        buf = io.BytesIO()
+        labels = counts.index.astype(str).tolist()
+        sizes = counts.values.tolist()
+        
+        # Use Plotly color sequence
+        plotly_colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A',
+                        '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
+        colors_map = [plotly_colors[i % len(plotly_colors)] for i in range(len(labels))]
+        
+        fig, ax = plt.subplots(figsize=(4, 3), dpi=200)
+        wedges, texts, autotexts = ax.pie(
+            sizes,
+            labels=labels if len(labels) <= 4 else None,
+            autopct=lambda p: f'{p:.1f}%' if p > 1 else '',
+            startangle=90,
+            colors=colors_map,
+            textprops={'fontsize': 8}
+        )
+        
+        # Add legend if too many categories
+        if len(labels) > 4:
+            ax.legend(wedges, labels, title="Categories", loc="center left", 
+                    bbox_to_anchor=(1, 0, 0.5, 1), fontsize='x-small')
+        
+        ax.set_title(title, fontsize=10, pad=15)
+        ax.axis('equal')
+        
+        fig.tight_layout()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        plt.close(fig)
+        buf.seek(0)
+        return buf
+
+    def generate_bar_chart_for_pdf(df_cleaned, construct_keywords, demo_keywords, title, demo_label):
+        """Generate bar chart showing construct scores by demographic"""
+        if df_cleaned is None or df_cleaned.empty:
+            return None
+        
+        # Find construct column
+        construct_col = None
+        for col in df_cleaned.columns:
+            if any(k.lower() in col.lower() for k in construct_keywords):
+                construct_col = col
+                break
+        
+        # Find demographic column
+        demo_col = None
+        for col in df_cleaned.columns:
+            if any(k.lower() in col.lower() for k in demo_keywords):
+                demo_col = col
+                break
+        
+        if not construct_col or not demo_col:
+            return None
+        
+        # Prepare data
+        plot_df = df_cleaned[[demo_col, construct_col]].dropna()
+        plot_df[construct_col] = pd.to_numeric(plot_df[construct_col], errors="coerce")
+        plot_df = plot_df.dropna()
+        
+        if plot_df.empty:
+            return None
+        
+        # Calculate averages
+        group_avg = plot_df.groupby(demo_col)[construct_col].agg(['mean', 'count']).reset_index()
+        group_avg.columns = [demo_col, 'AvgScore', 'Count']
+        
+        # Sort grades numerically if it's grade data
+        if demo_label == "Grade":
+            group_avg[demo_col] = pd.to_numeric(group_avg[demo_col], errors='coerce')
+            group_avg = group_avg.sort_values(by=demo_col).dropna(subset=[demo_col])
+            group_avg[demo_col] = group_avg[demo_col].astype(int).astype(str)
+        
+        # Generate bar chart
+        buf = io.BytesIO()
+        fig, ax = plt.subplots(figsize=(6, 4), dpi=200)
+        
+        bars = ax.bar(group_avg[demo_col], group_avg['AvgScore'], 
+                    color=['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A'][:len(group_avg)])
+        
+        # Add value labels on bars
+        for i, (bar, row) in enumerate(zip(bars, group_avg.itertuples())):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height + 0.05,
+                    f'{height:.2f}\n(N={row.Count})',
+                    ha='center', va='bottom', fontsize=8, weight='bold')
+        
+        ax.set_xlabel(demo_label, fontsize=10)
+        ax.set_ylabel('Average Score', fontsize=10)
+        ax.set_title(title, fontsize=11, pad=15)
+        ax.set_ylim(0, max(group_avg['AvgScore']) + 0.5)
+        
+        plt.xticks(rotation=45 if len(group_avg) > 3 else 0)
+        fig.tight_layout()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        plt.close(fig)
+        buf.seek(0)
+        return buf
+
+    def generate_percentage_breakdown_for_pdf(df_cleaned, construct_keywords, demo_keywords, title):
+        """Generate percentage breakdown stacked bar chart"""
+        if df_cleaned is None or df_cleaned.empty:
+            return None
+        
+        # Find columns
+        construct_col = None
+        for col in df_cleaned.columns:
+            if any(k.lower() in col.lower() for k in construct_keywords):
+                construct_col = col
+                break
+        
+        demo_col = None
+        for col in df_cleaned.columns:
+            if any(k.lower() in col.lower() for k in demo_keywords):
+                demo_col = col
+                break
+        
+        if not construct_col or not demo_col:
+            return None
+        
+        # Prepare data
+        breakdown_df = df_cleaned[[demo_col, construct_col]].dropna()
+        breakdown_df[construct_col] = pd.to_numeric(breakdown_df[construct_col], errors="coerce")
+        breakdown_df = breakdown_df.dropna()
+        
+        if breakdown_df.empty:
+            return None
+        
+        # Label responses
+        def label_bucket(val):
+            if pd.isna(val):
+                return "Unknown"
+            if val <= 2:
+                return "Disagree"
+            elif val == 3:
+                return "Neutral"
+            elif val >= 4:
+                return "Agree"
+            return "Unknown"
+        
+        breakdown_df["ResponseLevel"] = breakdown_df[construct_col].apply(label_bucket)
+        
+        # Calculate percentages
+        percent_df = breakdown_df.groupby([demo_col, "ResponseLevel"]).size().reset_index(name='Count')
+        total_counts = percent_df.groupby(demo_col)['Count'].transform('sum')
+        percent_df['Percent'] = (percent_df['Count'] / total_counts * 100).round(1)
+        
+        # Create stacked bar chart
+        buf = io.BytesIO()
+        fig, ax = plt.subplots(figsize=(6, 4), dpi=200)
+        
+        # Pivot data for stacked bar
+        pivot_df = percent_df.pivot(index=demo_col, columns='ResponseLevel', values='Percent').fillna(0)
+        
+        # Define colors for response levels
+        color_map = {
+            "Agree": "#4CAF50",
+            "Neutral": "#FFC107", 
+            "Disagree": "#F44336",
+            "Unknown": "#9E9E9E"
+        }
+        
+        # Plot stacked bars
+        bottom = None
+        for response_level in ["Agree", "Neutral", "Disagree", "Unknown"]:
+            if response_level in pivot_df.columns:
+                bars = ax.bar(pivot_df.index, pivot_df[response_level], 
+                            bottom=bottom, label=response_level, 
+                            color=color_map[response_level])
+                
+                # Add percentage labels on bars
+                for bar, value in zip(bars, pivot_df[response_level]):
+                    if value > 5:  # Only show labels for segments > 5%
+                        height = bar.get_height()
+                        ax.text(bar.get_x() + bar.get_width()/2., 
+                            bar.get_y() + height/2.,
+                            f'{value:.1f}%',
+                            ha='center', va='center', fontsize=7, weight='bold')
+                
+                if bottom is None:
+                    bottom = pivot_df[response_level]
+                else:
+                    bottom += pivot_df[response_level]
+        
+        ax.set_xlabel(demo_col.replace('_', ' ').title(), fontsize=10)
+        ax.set_ylabel('Percentage (%)', fontsize=10)
+        ax.set_title(title, fontsize=11, pad=15)
+        ax.legend(title="Response Level", bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_ylim(0, 100)
+        
+        fig.tight_layout()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        plt.close(fig)
+        buf.seek(0)
+        return buf
 
     def generate_pdf(school_name, school_logo_base64, apnapan_logo_base64):
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=28, rightMargin=28, topMargin=28, bottomMargin=28)
         styles = getSampleStyleSheet()
 
-        # Custom styles
-        title_style   = ParagraphStyle("TitleStyle", parent=styles["Title"], fontSize=18, alignment=1, textColor=colors.black, spaceAfter=6)
-        small_grey    = ParagraphStyle("SmallGrey", parent=styles["Normal"], fontSize=9, alignment=2, textColor=colors.HexColor("#666"))
-        header_style  = ParagraphStyle("HeaderStyle", parent=styles["Heading2"], fontSize=14, alignment=1, textColor=colors.HexColor("#000"))
-        note_style    = ParagraphStyle("NoteStyle", parent=styles["Normal"], fontSize=10)
+        # Enhanced custom styles
+        title_style = ParagraphStyle("TitleStyle", parent=styles["Title"], fontSize=20, alignment=1, 
+                                    textColor=colors.HexColor("#2E3440"), spaceAfter=8, spaceBefore=0,
+                                    fontName="Helvetica-Bold")
+        subtitle_style = ParagraphStyle("SubtitleStyle", parent=styles["Title"], fontSize=16, alignment=1, 
+                                    textColor=colors.HexColor("#5E81AC"), spaceAfter=6)
+        small_grey = ParagraphStyle("SmallGrey", parent=styles["Normal"], fontSize=9, alignment=2, 
+                                textColor=colors.HexColor("#666"))
+        header_style = ParagraphStyle("HeaderStyle", parent=styles["Heading2"], fontSize=14, alignment=0, 
+                                    textColor=colors.HexColor("#2E3440"), spaceBefore=20, spaceAfter=10,
+                                    fontName="Helvetica-Bold", borderWidth=1, borderColor=colors.HexColor("#E5E7EB"),
+                                    borderPadding=5, backColor=colors.HexColor("#F9FAFB"))
+        subheader_style = ParagraphStyle("SubHeaderStyle", parent=styles["Heading3"], fontSize=12, alignment=0, 
+                                        textColor=colors.HexColor("#374151"), spaceBefore=12, spaceAfter=8,
+                                        fontName="Helvetica-Bold")
+        note_style = ParagraphStyle("NoteStyle", parent=styles["Normal"], fontSize=10, textColor=colors.HexColor("#4B5563"))
+        highlight_style = ParagraphStyle("HighlightStyle", parent=styles["Normal"], fontSize=10, 
+                                        textColor=colors.HexColor("#1F2937"), backColor=colors.HexColor("#F3F4F6"),
+                                        borderWidth=1, borderColor=colors.HexColor("#D1D5DB"), borderPadding=8,
+                                        spaceAfter=10, spaceBefore=10)
 
         story = []
 
-        # --- PDF Header with Logos and Names ---
-        apnapan_logo_img = Paragraph(" ", styles['Normal']) # Fallback
+        # --- Enhanced PDF Header ---
+        apnapan_logo_img = Paragraph(" ", styles['Normal'])
         if apnapan_logo_base64:
             try:
                 apnapan_logo_bytes = io.BytesIO(base64.b64decode(apnapan_logo_base64))
-                apnapan_logo_img = Image(apnapan_logo_bytes, width=0.8*inch, height=0.8*inch)
+                apnapan_logo_img = Image(apnapan_logo_bytes, width=1*inch, height=1*inch)
             except Exception:
-                pass # Keep fallback
+                pass
 
-        school_logo_img = Paragraph(" ", styles['Normal']) # Fallback
+        school_logo_img = Paragraph(" ", styles['Normal'])
         if school_logo_base64:
             try:
                 school_logo_bytes = io.BytesIO(base64.b64decode(school_logo_base64))
-                school_logo_img = Image(school_logo_bytes, width=0.8*inch, height=0.8*inch)
+                school_logo_img = Image(school_logo_bytes, width=1*inch, height=1*inch)
             except Exception:
-                pass # Keep fallback
+                pass
 
-        # Center content: Report Title and School Name
+        # Enhanced center content
         center_content = [
             Paragraph("Apnapan Pulse Report", title_style),
+            Paragraph("School Belonging Assessment", subtitle_style),
             Paragraph(school_name, header_style)
         ]
 
-        header_table = Table([[apnapan_logo_img, center_content, school_logo_img]], colWidths=[1*inch, 5.5*inch, 1*inch])
+        header_table = Table([[apnapan_logo_img, center_content, school_logo_img]], colWidths=[1.2*inch, 5.6*inch, 1.2*inch])
         header_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
             ('ALIGN', (1, 0), (1, 0), 'CENTER'),
             ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('LINEBELOW', (0, 0), (-1, -1), 2, colors.HexColor("#E5E7EB")),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
         ]))
         story.append(header_table)
-        story.append(Paragraph(f"Date: {date_today}", small_grey))
+        
+        # Date and report info
+        report_info = f"Generated on: {date_today} | Academic Year: {datetime.now().year}-{datetime.now().year + 1}"
+        story.append(Paragraph(report_info, small_grey))
+        story.append(Spacer(1, 20))
+
+        # --- Executive Summary Section ---
+        story.append(Paragraph("Executive Summary", header_style))
+        
+        # Calculate additional metrics for summary
+        response_rate = (n_students / n_students * 100) if n_students > 0 else 0  # Placeholder - replace with actual invited vs responded
+        avg_score = overall_belonging or 0
+        
+        # Determine performance level
+        if avg_score >= 4.0:
+            performance_level = "Excellent"
+            performance_color = "#10B981"
+        elif avg_score >= 3.5:
+            performance_level = "Good"
+            performance_color = "#3B82F6"
+        elif avg_score >= 3.0:
+            performance_level = "Fair"
+            performance_color = "#F59E0B"
+        else:
+            performance_level = "Needs Attention"
+            performance_color = "#EF4444"
+
+        summary_text = f"""
+        This report presents the results of the Apnapan Pulse survey conducted at {name}. 
+        The survey assessed students' sense of belonging across multiple dimensions. 
+        <br/><br/>
+        <b>Key Findings:</b><br/>
+        • <b>{n_students}</b> students participated in the survey<br/>
+        • Overall belonging score: <b>{avg_score:.2f}/5.0</b> ({performance_level})<br/>
+        • Strongest area: <b>{highest_area if isinstance(highest_area, str) else 'Not determined'}</b><br/>
+        • Area for improvement: <b>{lowest_area if isinstance(lowest_area, str) else 'Not determined'}</b>
+        """
+        story.append(Paragraph(summary_text, highlight_style))
+        story.append(Spacer(1, 15))
+
+        # --- Enhanced Key Metrics Section ---
+        story.append(Paragraph("Key Metrics Overview", header_style))
+        
+        # Enhanced bubble function with better styling
+        def enhanced_bubble(text, bg_hex, text_color="#FFFFFF"):
+            return Table(
+                [[Paragraph(text, ParagraphStyle("bub", fontSize=12, alignment=1, 
+                                            textColor=colors.HexColor(text_color),
+                                            leading=16))]],
+                colWidths=[2.4*inch], 
+                rowHeights=[1.1*inch],
+                style=TableStyle([
+                    ("BACKGROUND", (0,0), (-1,-1), colors.HexColor(bg_hex)),
+                    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                    ("ALIGN", (0,0), (-1,-1), "CENTER"),
+                    ("ROUNDEDCORNERS", [5, 5, 5, 5]),
+                    ("LINEWIDTH", (0,0), (-1,-1), 2),
+                    ("LINECOLOR", (0,0), (-1,-1), colors.HexColor("#E5E7EB")),
+                ])
+            )
+
+        # Row 1: Overall metrics
+        score_txt = f"<b>Overall Belonging Score</b><br/><br/><font size=20 color='{performance_color}'>{avg_score:.2f}</font><br/><font size=10>out of 5.0 ({performance_level})</font>"
+        n_txt = f"<b>Students Surveyed</b><br/><br/><font size=20>{n_students}</font><br/><font size=10>participants</font>"
+
+        row1 = Table([[enhanced_bubble(score_txt, "#F8FAFC", "#1F2937"), enhanced_bubble(n_txt, "#F0F9FF", "#1F2937")]],
+                    colWidths=[3.2*inch, 3.2*inch])
+        story.append(row1)
         story.append(Spacer(1, 12))
 
-        # Row of two big bubbles: Belonging score + N students
-        score_txt = f"<b>Belonging score</b><br/><br/><font size=18>{(overall_belonging or 0):.2f}</font>"
-        n_txt     = f"<b>Number of students (N)</b><br/><br/><font size=18>{n_students}</font>"
+        # Row 2: Strongest/Weakest areas
+        strong_label = (highest_area if isinstance(highest_area, str) else "Not determined")
+        strong_val = float(category_averages.get(strong_label, 0)) if strong_label in category_averages else 0.0
+        weak_label = (lowest_area if isinstance(lowest_area, str) else "Not determined")
+        weak_val = float(category_averages.get(weak_label, 0)) if weak_label in category_averages else 0.0
 
-        row1 = Table([[bubble(score_txt, "#E59A86"), bubble(n_txt, "#A7E181")]],
-                     colWidths=[3.1*inch, 3.1*inch])
-        story.append(row1)
-        story.append(Spacer(1, 10))
-
-        # Strongest / Weakest bubbles
-        strong_label = (highest_area if isinstance(highest_area, str) else "-")
-        strong_val   = float(category_averages.get(strong_label, 0)) if strong_label in category_averages else 0.0
-        weak_label   = (lowest_area if isinstance(lowest_area, str) else "-")
-        weak_val     = float(category_averages.get(weak_label, 0)) if weak_label in category_averages else 0.0
-
-        strong_txt = f"<b>Strongest area:</b><br/>{strong_label}<br/><font size=13>{strong_val:.2f}</font>"
-        weak_txt   = f"<b>Weakest area:</b><br/>{weak_label}<br/><font size=13>{weak_val:.2f}</font>"
-        row2 = Table([[bubble(strong_txt, "#636EFA"), bubble(weak_txt, "#FFD29B")]],
-                     colWidths=[3.1*inch, 3.1*inch])
+        strong_txt = f"<b>Strongest Area</b><br/><br/><font size=14>{strong_label}</font><br/><font size=16 color='#10B981'>{strong_val:.2f}</font>"
+        weak_txt = f"<b>Area for Improvement</b><br/><br/><font size=14>{weak_label}</font><br/><font size=16 color='#EF4444'>{weak_val:.2f}</font>"
+        
+        row2 = Table([[enhanced_bubble(strong_txt, "#ECFDF5", "#1F2937"), enhanced_bubble(weak_txt, "#FEF2F2", "#1F2937")]],
+                    colWidths=[3.2*inch, 3.2*inch])
         story.append(row2)
-        story.append(Spacer(1, 14))
+        story.append(Spacer(1, 20))
 
-        # Section: Demographics + Right rail constructs
-        left_cells = []
-        # Add pies if available
-        pie_elems = []
+        # --- Enhanced Demographics and Constructs Section ---
+        story.append(Paragraph("Demographics & Construct Analysis", header_style))
+
+        # Left side: Demographics with improved layout
+        left_content = []
+        left_content.append(Paragraph("Student Demographics", subheader_style))
+        
+        demographic_charts = []
         if gender_pie_buf:
-            pie_elems.append(Image(gender_pie_buf, width=2.5*inch, height=2.5*inch))
+            demographic_charts.append(Image(gender_pie_buf, width=2.6*inch, height=2.3*inch))
         if religion_pie_buf:
-            pie_elems.append(Image(religion_pie_buf, width=2.7*inch, height=2.7*inch))
-        if pie_elems:
-            left_cells.extend(pie_elems)
+            demographic_charts.append(Image(religion_pie_buf, width=2.6*inch, height=2.3*inch))
+        
+        if demographic_charts:
+            for chart in demographic_charts:
+                left_content.append(chart)
+                left_content.append(Spacer(1, 8))
         else:
-            left_cells.append(Paragraph("Demographics charts will appear here when available.", note_style))
+            left_content.append(Paragraph("Demographic charts will be displayed when data is available.", 
+                                        note_style))
 
-        left_flow = []
-        for elem in left_cells:
-            left_flow.append(elem)
-            left_flow.append(Spacer(1, 10))
+        # Right side: Enhanced constructs table
+        constructs_data = [["Construct", "Score", "Level"]]
+        if category_averages:
+            for construct, score in category_averages.items():
+                score_val = float(score)
+                if score_val >= 4.0:
+                    level = "Strong"
+                elif score_val >= 3.5:
+                    level = "Good"
+                elif score_val >= 3.0:
+                    level = "Fair"
+                else:
+                    level = "Needs Work"
+                constructs_data.append([construct, f"{score_val:.2f}", level])
+        else:
+            constructs_data.append(["-", "-", "-"])
 
-        constructs_tbl = Table(constructs_table_data, colWidths=[2.1*inch, 1.0*inch])
+        constructs_tbl = Table(constructs_data, colWidths=[1.8*inch, 0.7*inch, 0.8*inch])
         constructs_tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#F0F0F0")),
-            ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#AAAAAA")),
-            ("ALIGN", (1,1), (1,-1), "CENTER"),
+            ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#374151")),
+            ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+            ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+            ("FONTSIZE", (0,0), (-1,0), 10),
+            ("ALIGN", (0,0), (-1,-1), "CENTER"),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("GRID", (0,0), (-1,-1), 1, colors.HexColor("#E5E7EB")),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#F9FAFB")]),
+            ("FONTSIZE", (0,1), (-1,-1), 9),
+            ("TOPPADDING", (0,0), (-1,-1), 8),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
         ]))
-        right_panel = []
-        right_panel.append(Paragraph("Construct Scores", header_style))
-        right_panel.append(Spacer(1, 6))
-        right_panel.append(constructs_tbl)
 
-        # Two-column layout: left (pies) | right (constructs list)
-        layout = Table([[left_flow, right_panel]], colWidths=[3.9*inch, 2.3*inch])
-        layout.setStyle(TableStyle([("VALIGN", (0,0), (-1,-1), "TOP")]))
-        story.append(layout)
-        story.append(Spacer(1, 16))
+        right_content = []
+        right_content.append(Paragraph("Construct Scores Summary", subheader_style))
+        right_content.append(Spacer(1, 8))
+        right_content.append(constructs_tbl)
 
-        # Food for Thought
-        story.append(Paragraph("Food for Thought", header_style))
-        bullets = """
-        <ul>
-            <li>Do certain groups consistently score higher or lower?</li>
-            <li>Why do you think that happens?</li>
-            <li>What kind of experiences or challenges could be influencing their responses?</li>
-            <li>Are there social, cultural, or school-related factors that might be shaping these patterns?</li>
-        </ul>
+        # Legend for score levels
+        legend_text = """
+        <b>Score Interpretation:</b><br/>
+        4.0+ : Strong | 3.5-3.9 : Good<br/>
+        3.0-3.4 : Fair | &lt;3.0 : Needs Work
         """
-        story.append(Paragraph(bullets, styles['Normal']))
+        right_content.append(Spacer(1, 10))
+        right_content.append(Paragraph(legend_text, ParagraphStyle("Legend", parent=note_style, 
+                                                                fontSize=8, textColor=colors.HexColor("#6B7280"))))
+
+        # Two-column layout with better spacing
+        demographics_layout = Table([[left_content, right_content]], colWidths=[3.8*inch, 2.6*inch])
+        demographics_layout.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "TOP"),
+            ("LEFTPADDING", (0,0), (-1,-1), 5),
+            ("RIGHTPADDING", (0,0), (-1,-1), 5),
+        ]))
+        story.append(demographics_layout)
+        story.append(Spacer(1, 25))
+
+        # --- Recommendations Section ---
+        story.append(Paragraph("Recommendations", header_style))
+        
+        recommendations = []
+        if weak_val < 3.0:
+            recommendations.append(f"<b>Priority Action:</b> Focus immediate attention on improving {weak_label} (score: {weak_val:.2f})")
+        if avg_score < 3.5:
+            recommendations.append("<b>Overall Improvement:</b> Consider school-wide belonging initiatives")
+        if strong_val > 4.0:
+            recommendations.append(f"<b>Leverage Strengths:</b> Use successful practices from {strong_label} in other areas")
+        
+        # Add demographic-specific recommendations if available
+        recommendations.extend([
+            "<b>Data Deep Dive:</b> Analyze results by demographic groups to identify specific needs",
+            "<b>Student Voice:</b> Conduct focus groups to understand the stories behind the numbers",
+            "<b>Action Planning:</b> Develop targeted interventions based on lowest-scoring constructs"
+        ])
+
+        rec_text = "<br/>• ".join(recommendations)
+        story.append(Paragraph(f"• {rec_text}", note_style))
+        story.append(Spacer(1, 20))
+
+        # --- Enhanced Food for Thought ---
+        story.append(Paragraph("Food for Thought", header_style))
+        
+        thought_questions = [
+            "Which demographic groups show the most significant differences in belonging scores?",
+            "What school policies or practices might be contributing to these patterns?",
+            "How do these results align with other school data (attendance, achievement, discipline)?",
+            "What student voices and perspectives are missing from this quantitative data?",
+            "Which interventions could have the greatest impact on overall belonging?",
+            "How can the school's strengths be leveraged to address areas of concern?"
+        ]
+        
+        bullets = "<br/>".join([f"• {question}" for question in thought_questions])
+        
+        story.append(Paragraph(bullets, note_style))
+        story.append(Spacer(1, 20))
+
+        # --- Footer ---
+        footer_text = f"""
+        <br/><br/>
+        <font size=8 color='#6B7280'>
+        This report was generated by the Apnapan Pulse platform. For questions about methodology 
+        or support with action planning, please contact your Apnapan representative.
+        <br/>
+        Report ID: AP-{datetime.now().strftime('%Y%m%d')}-{school_name[:3].upper()}
+        </font>
+        """
+        story.append(Paragraph(footer_text, ParagraphStyle("Footer", parent=styles["Normal"], 
+                                                        fontSize=8, alignment=1, 
+                                                        textColor=colors.HexColor("#6B7280"))))
 
         doc.build(story)
         buffer.seek(0)
         return buffer
+    
 
-    # ---- Top row buttons: Back + Feedback side-by-side ----
-    colA, colB, colC = st.columns([1, 1, 1])
+    # Helper function to categorize income (from your visualization code)
+    def categorize_income(possessions: str) -> str:
+        if pd.isna(possessions):
+            return "Unknown"
+        items = possessions.lower()
+        has_car = "car" in items
+        has_computer = "computer" in items or "laptop" in items
+        has_home = "apna ghar" in items
+        is_rented = "rent" in items
+        if has_car and has_home:
+            return "High"
+        if has_computer or (has_home and not has_car):
+            return "Mid"
+        return "Low"
+    
+    school_name = "your school" # Default
+    school_logo_base64 = None
+    if 'logged_in_user' in st.session_state:
+        school_id = st.session_state['logged_in_user']
+        name, logo = get_school_details(school_id)
+        if name:
+            school_name = name
+        if logo:
+            school_logo_base64 = logo
+
+    colA, colB = st.columns([1, 1])
     with colA:
-        if st.button(" Back to Visualisations", use_container_width=True):
-            st.session_state.pdf_buffer = None # Clear buffer when navigating away
-            navigate_to('visualisations')
-            st.rerun()
+        # The "Generate" button is the primary action. It creates the PDF and stores it in state.
+        if st.button("Generate General Report", use_container_width=True, key="generate_report"):
+            with st.spinner("Generating your report..."):
+                st.session_state.pdf_buffer = generate_pdf(school_name, school_logo_base64, logo_base64)
+
+        # If a report has been generated, show the download button.
+            if st.session_state.get('pdf_buffer'):
+             st.markdown('<div class="report-download-button">', unsafe_allow_html=True)
+             st.download_button(
+                label="Download Report",
+                data=st.session_state.pdf_buffer,
+                use_container_width=True,
+                file_name="Apnapan_Pulse_Report.pdf",
+                mime="application/pdf"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+        
     with colB:
+        if st.button("Customise your report", use_container_width=True):
+            st.session_state['show_custom_options'] = True
+            st.rerun()
+
+    # Custom report options section
+    if st.session_state.get('show_custom_options', False):
+        st.markdown("---")
+        st.subheader(" Custom Report Configuration")
+        
+        # Step 1: Select construct
+        st.markdown("#### Step 1: Select Construct")
+        available_constructs = list(matched_questions.keys()) if matched_questions else []
+        
+        if not available_constructs:
+            st.warning("No constructs available. Please ensure your data has been processed.")
+            st.session_state['show_custom_options'] = False
+        else:
+            selected_construct = st.selectbox(
+                "Choose which construct you want to focus on:",
+                options=available_constructs,
+                key="custom_construct_select"
+            )
+            
+            if selected_construct:
+                st.info(f"Selected construct: **{selected_construct}**")
+                
+                # Step 2: Select demographic breakdowns
+                st.markdown("#### Step 2: Select Charts to Include")
+                st.write("Choose which demographic breakdowns you want to include in your custom report:")
+                
+                # Available demographic options (matching your visualization code)
+                demographic_options = {
+                    "Gender Distribution": {
+                        "type": "demographic_pie",
+                        "description": "Pie chart showing gender distribution of respondents",
+                        "keywords": ["gender", "What gender do you use"]
+                    },
+                    "Religion Distribution": {
+                        "type": "demographic_pie", 
+                        "description": "Pie chart showing religion distribution of respondents",
+                        "keywords": ["religion"]
+                    },
+                    "Grade Distribution": {
+                        "type": "demographic_pie",
+                        "description": "Pie chart showing grade distribution of respondents",
+                        "keywords": ["grade", "Which grade are you in"]
+                    },
+                    f"{selected_construct} by Gender": {
+                        "type": "construct_vs_demographic",
+                        "description": f"Bar chart showing {selected_construct} scores by gender",
+                        "demographic": "Gender",
+                        "keywords": ["gender", "What gender do you use"]
+                    },
+                    f"{selected_construct} by Grade": {
+                        "type": "construct_vs_demographic", 
+                        "description": f"Bar chart showing {selected_construct} scores by grade",
+                        "demographic": "Grade",
+                        "keywords": ["grade", "Which grade are you in"]
+                    },
+                    f"{selected_construct} by Religion": {
+                        "type": "construct_vs_demographic",
+                        "description": f"Bar chart showing {selected_construct} scores by religion", 
+                        "demographic": "Religion",
+                        "keywords": ["religion"]
+                    },
+                    f"{selected_construct} by Income Status": {
+                        "type": "construct_vs_demographic",
+                        "description": f"Bar chart showing {selected_construct} scores by income status",
+                        "demographic": "Income Status",
+                        "keywords": ["Income Category"]
+                    },
+                    f"{selected_construct} by Ethnicity": {
+                        "type": "construct_vs_demographic",
+                        "description": f"Bar chart showing {selected_construct} scores by ethnicity",
+                        "demographic": "Ethnicity",
+                        "keywords": ["ethnicity_cleaned"]
+                    },
+                    f"{selected_construct} by Health Condition": {
+                        "type": "construct_vs_demographic",
+                        "description": f"Bar chart showing {selected_construct} scores by health condition",
+                        "demographic": "Health Condition",
+                        "keywords": ["disability", "health condition"]
+                    },
+                    f"Gender Breakdown (Percentage)": {
+                        "type": "percentage_breakdown",
+                        "description": f"Stacked bar chart showing percentage breakdown of {selected_construct} responses by gender",
+                        "keywords": ["gender", "What gender do you use"]
+                    }
+                }
+                
+                # Create checkboxes for each chart option
+                selected_charts = {}
+                
+                # Group charts by type for better organization
+                st.markdown("**Demographic Overview Charts:**")
+                demo_cols = st.columns(3)
+                demo_idx = 0
+                for chart_name, chart_info in demographic_options.items():
+                    if chart_info["type"] == "demographic_pie":
+                        with demo_cols[demo_idx % 3]:
+                            selected_charts[chart_name] = st.checkbox(
+                                chart_name,
+                                key=f"chart_{chart_name}",
+                                help=chart_info["description"]
+                            )
+                        demo_idx += 1
+                
+                st.markdown("**Construct vs Demographics Charts:**")
+                construct_cols = st.columns(2)
+                construct_idx = 0
+                for chart_name, chart_info in demographic_options.items():
+                    if chart_info["type"] == "construct_vs_demographic":
+                        with construct_cols[construct_idx % 2]:
+                            selected_charts[chart_name] = st.checkbox(
+                                chart_name,
+                                key=f"chart_{chart_name}",
+                                help=chart_info["description"]
+                            )
+                        construct_idx += 1
+                
+                st.markdown("**Advanced Analysis:**")
+                for chart_name, chart_info in demographic_options.items():
+                    if chart_info["type"] == "percentage_breakdown":
+                        selected_charts[chart_name] = st.checkbox(
+                            chart_name,
+                            key=f"chart_{chart_name}",
+                            help=chart_info["description"]
+                        )
+                
+                # Step 3: Generate custom report
+                st.markdown("#### Step 3: Generate Custom Report")
+                
+                # Show summary of selections
+                selected_chart_names = [name for name, selected in selected_charts.items() if selected]
+                if selected_chart_names:
+                    st.success(f"**Selected Charts:** {len(selected_chart_names)} chart(s)")
+                    with st.expander("View selected charts"):
+                        for chart_name in selected_chart_names:
+                            st.write(f"• {chart_name}")
+                else:
+                    st.warning("Please select at least one chart to include in your custom report.")
+                
+                # Generate button
+                col_gen, col_cancel = st.columns([1, 1])
+                
+                with col_gen:
+                    if st.button("Generate Custom Report", 
+                               use_container_width=True, 
+                               disabled=len(selected_chart_names) == 0,
+                               key="generate_custom_report"):
+                        
+                        # Store custom report configuration in session state
+                        st.session_state['custom_report_config'] = {
+                            'construct': selected_construct,
+                            'selected_charts': selected_chart_names,
+                            'chart_options': demographic_options
+                        }
+                        
+                        with st.spinner("Generating your custom report..."):
+                            # Generate custom PDF
+                            custom_pdf_buffer = generate_custom_pdf(
+                                school_name, 
+                                school_logo_base64, 
+                                logo_base64,
+                                selected_construct,
+                                selected_chart_names,
+                                demographic_options,
+                                df_cleaned,
+                                matched_questions,
+                                category_averages,
+                                overall_belonging,
+                                date_today,
+                                n_students
+                            )
+                            st.session_state.custom_pdf_buffer = custom_pdf_buffer
+                        
+                        if st.session_state.get('custom_pdf_buffer'):
+                            st.markdown('<div class="report-download-button">', unsafe_allow_html=True)
+                            st.download_button(
+                                label="Download Custom Report",
+                                data=st.session_state.custom_pdf_buffer,
+                                use_container_width=True,
+                                file_name=f"Apnapan_Custom_Report_{selected_construct.replace(' ', '_')}.pdf",
+                                mime="application/pdf"
+                            )
+                            st.markdown('</div>', unsafe_allow_html=True)
+                
+                with col_cancel:
+                    if st.button("Cancel", use_container_width=True, key="cancel_custom"):
+                        st.session_state['show_custom_options'] = False
+                        st.rerun()
+
+
+    cA, cB = st.columns([1, 1])
+    with cA:
+         if st.button(" Back to Data Tables", use_container_width=True):
+            navigate_to('data_table')
+            st.rerun()
+    with cB:
         # clicking sets a flag that opens the expander automatically below
         # ---- Feedback section ----
         if "show_feedback_form" not in st.session_state:
@@ -2112,9 +3122,9 @@ if st.session_state['current_page'] == 'data_table':
 
         # Feedback form (conditionally displayed)
     if st.session_state["show_feedback_form"]:
-        st.write("### Feedback")
-        feedback = st.text_area("Flag any issues or suggestions", key="feedback_text_area")
-        if st.button("Submit Feedback", key="submit_feedback_button"):
+         st.write("### Feedback")
+         feedback = st.text_area("Flag any issues or suggestions", key="feedback_text_area")
+         if st.button("Submit Feedback", key="submit_feedback_button"):
             if feedback:
                 try:
                     sheet = connect_to_google_sheet("Apnapan Data Insights Generator Tool Feedbacks")
@@ -2127,41 +3137,6 @@ if st.session_state['current_page'] == 'data_table':
             else:
                 st.warning("Please enter some feedback before submitting.")
 
-    # ---- Styled download button (peach) ----
-    st.markdown("""
-        <style>
-        .report-download-button .stDownloadButton > button {
-            background-color: #C7361A !important;
-            color: white !important;
-            border-radius: 10px;
-            border: none;
-            font-weight: 700;
-        }
-        .report-download-button .stDownloadButton > button:hover {
-            background-color: #FFB774 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    with colC:
-        # The "Generate" button is the primary action. It creates the PDF and stores it in state.
-        if st.button("Generate Report", use_container_width=True, key="generate_report"):
-            with st.spinner("Generating your report..."):
-                st.session_state.pdf_buffer = generate_pdf(school_name, school_logo_base64, logo_base64)
-
-        # If a report has been generated, show the download button.
-        if st.session_state.get('pdf_buffer'):
-            st.markdown('<div class="report-download-button">', unsafe_allow_html=True)
-            st.download_button(
-                label="Download Report",
-                data=st.session_state.pdf_buffer,
-                use_container_width=True,
-                file_name="Apnapan_Pulse_Report.pdf",
-                mime="application/pdf"
-            )
-            st.markdown('</div>', unsafe_allow_html=True)
-
     with st.expander("Need Help?"):
-        st.write("Contact us at Email: projectapnapan@gmail.com")
-
-    st.stop()
+             st.write("Contact us at Email: projectapnapan@gmail.com")
+             st.stop()
