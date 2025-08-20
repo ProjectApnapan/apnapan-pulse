@@ -504,7 +504,7 @@ if st.session_state['current_page'] == 'create_account':
                 else:
                     st.error(message)
 
-    if st.button("Back to Login", key="back_to_login_from_create"):
+    if st.button("⮜ Back to Login", key="back_to_login_from_create"):
         navigate_to('login')
         st.rerun()
 
@@ -567,7 +567,7 @@ if st.session_state['current_page'] == 'forgot_password':
                         st.error(message)
 
     # Always show the back to login button, but handle state reset
-    if st.button("Back to Login", key="back_to_login_from_forgot"):
+    if st.button("⮜ Back to Login", key="back_to_login_from_forgot"):
         # Clean up state if user navigates away mid-process
         if 'reset_step' in st.session_state:
             del st.session_state.reset_step
@@ -946,11 +946,11 @@ if st.session_state['current_page'] == 'landing':
     # Buttons to navigate
     col1, col2 = st.columns([1, 1])
     with col2:
-        if st.button("Start Exploring", key="start_exploring_button", use_container_width=True):
+        if st.button("Start Exploring ⮞", key="start_exploring_button", use_container_width=True):
             navigate_to('main')
             st.rerun()
     with col1:
-        if st.button("Back to Login", key="back_to_login_from_landing", use_container_width=True):
+        if st.button("⮜ Back to Login", key="back_to_login_from_landing", use_container_width=True):
             # Clear user-specific session state to effectively log out
             if 'logged_in_user' in st.session_state:
                 del st.session_state['logged_in_user']
@@ -969,7 +969,7 @@ questionnaire_mapping = {
     "Strongly Agree": 5
 }
 # Add a "Back" button to navigate to the landing page
-if st.button("Back to Landing Page", key="back_button"):
+if st.button("⮜ Back to Landing Page", key="back_button"):
     navigate_to('landing')
     st.rerun()
     
@@ -1158,11 +1158,11 @@ if st.session_state['current_page'] == 'main':
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        if st.button(" Back to Landing page", use_container_width=True):
+        if st.button(" ⮜ Back to Landing page", use_container_width=True):
             navigate_to('landing')
             st.rerun()
     with col2:
-        if st.button(" Go to Key Metrics", use_container_width=True):
+        if st.button(" Go to Key Metrics  ⮞", use_container_width=True):
             navigate_to('metrics')
             st.rerun()
     st.stop() 
@@ -1215,7 +1215,7 @@ if st.session_state['current_page'] == 'metrics':
         # --- Check if data is available ---
         if overall_belonging_score is None:
             st.warning("No data has been processed yet. Please go to the main page and upload a file.")
-            if st.button("Back to Upload Page"):
+            if st.button("⮜ Back to Upload Page"):
                 st.stop()
 
         # Show Likert scale image above the three score cards
@@ -1346,11 +1346,11 @@ if st.session_state['current_page'] == 'metrics':
         #         st.dataframe(summary)
         col1, col2 = st.columns([1, 1])
         with col1:
-         if st.button("Back to Upload Page", use_container_width=True):
+         if st.button("⮜ Back to Upload Page", use_container_width=True):
             navigate_to('main')
             st.rerun()
         with col2:
-         if st.button("Go to Visualisations" , use_container_width=True):
+         if st.button("Go to Visualisations  ⮞" , use_container_width=True):
             navigate_to('visualisations')
             st.rerun()
         st.stop()            
@@ -1776,12 +1776,12 @@ if st.session_state['current_page'] == 'visualisations':
         col1, col2 = st.columns([1, 1])
 
         with col1:
-            if st.button("Back to Key Metrics", use_container_width=True):
+            if st.button("⮜ Back to Key Metrics", use_container_width=True):
                 navigate_to('metrics')
                 st.rerun()
 
         with col2:
-            if st.button("Go to Data Tables", use_container_width=True):
+            if st.button("Go to Data Tables  ⮞", use_container_width=True):
                 navigate_to('data_table')
                 st.rerun()
         st.stop()
@@ -1874,11 +1874,11 @@ if st.session_state['current_page'] == 'data_table':
 
     colA, colB = st.columns([1, 1])
     with colA:
-        if st.button(" Back to Visualisations", use_container_width=True):
+        if st.button("⮜ Back to Visualisations", use_container_width=True):
             navigate_to('visualisations')
             st.rerun()
     with colB:
-        if st.button(" Go to Report Generation" , use_container_width=True):
+        if st.button(" Go to Report Generation  ⮞" , use_container_width=True):
             navigate_to('customise')
             st.rerun()
 
@@ -3118,7 +3118,7 @@ if st.session_state['current_page']=='customise':
 
     cA, cB = st.columns([1, 1])
     with cA:
-         if st.button(" Back to Data Tables", use_container_width=True):
+         if st.button("⮜ Back to Data Tables", use_container_width=True):
             navigate_to('data_table')
             st.rerun()
     with cB:
