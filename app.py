@@ -81,14 +81,28 @@ def create_user_account(school_id, password, email, school_name, logo_file):
         hashed_password = hash_password(password, salt)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Handle logo upload
-        logo_base64 = ""
+        # Handle logo upload to MongoDB to avoid Google Sheets cell size limit
+        logo_identifier = ""  # This will be stored in the sheet
         if logo_file:
-            logo_bytes = logo_file.read()
-            logo_base64 = base64.b64encode(logo_bytes).decode()  # Convert to base64 string
+            # Create a unique, predictable name for the logo in MongoDB
+            file_extension = os.path.splitext(logo_file.name)[1]
+            logo_filename_in_mongo = f"logo_{school_id}{file_extension}"
 
-        # Append new user data including the school name and logo
-        sheet.append_row([school_id, hashed_password, salt, email, school_name, logo_base64, timestamp])
+            # To use upload_file_to_mongo, we can temporarily change the name
+            # of the uploaded file object.
+            original_name = logo_file.name
+            logo_file.name = logo_filename_in_mongo
+            logo_file.seek(0)  # Rewind file pointer as a good practice
+
+            # Upload to MongoDB
+            if not upload_file_to_mongo(school_id, logo_file):
+                return False, "Error saving school logo. Account not created."
+
+            logo_file.name = original_name  # Restore original name
+            logo_identifier = logo_filename_in_mongo
+
+        # Append new user data including the school name and logo identifier
+        sheet.append_row([school_id, hashed_password, salt, email, school_name, logo_identifier, timestamp])
         return True, "Account created successfully!"
     except Exception as e:
         return False, f"Error creating account: {str(e)}"
@@ -169,9 +183,14 @@ def get_school_details(school_id):
         if school_id in all_school_ids:
             row_index = all_school_ids.index(school_id) + 1
             user_data = sheet.row_values(row_index)
-            # Assuming columns: School ID (1), Password (2), Salt (3), Email (4), School Name (5), Logo (6)
+            # Assuming columns: School ID (1), Password (2), Salt (3), Email (4), School Name (5), Logo Identifier (6)
             school_name = user_data[4]
-            logo_base64 = user_data[5]
+            logo_identifier = user_data[5] if len(user_data) > 5 else ""
+
+            logo_base64 = ""
+            if logo_identifier:
+                # Download the logo from MongoDB
+                logo_file_
             return school_name, logo_base64
         else:
             return None, None
