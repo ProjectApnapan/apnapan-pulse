@@ -192,8 +192,11 @@ def get_school_details(school_id):
 
             logo_base64 = ""
             if logo_identifier:
-                # Download the logo from MongoDB
-                logo_file_
+                # Download the logo from MongoDB and encode it
+                logo_file_buffer = download_file_from_mongo(school_id, logo_identifier)
+                if logo_file_buffer:
+                    logo_bytes = logo_file_buffer.getvalue()
+                    logo_base64 = base64.b64encode(logo_bytes).decode('utf-8')
             return school_name, logo_base64
         else:
             return None, None
@@ -258,6 +261,7 @@ def list_user_files(school_id):
         # Use an aggregation pipeline to get the latest version of each unique filename
         pipeline = [
             {"$match": {"school_id": school_id}},  # Filter by school
+            {"$match": {"filename": {"$not": {"$regex": "^logo_"}}}},  # Exclude logo files
             {"$sort": {"timestamp": -1}},  # Sort by date, newest first
             {
                 "$group": {  # Group by filename
@@ -453,7 +457,7 @@ if st.session_state['current_page'] == 'login':
             school_id = st.text_input("School ID", placeholder="Enter your school ID", key="school_id")
             password = st.text_input("Password", placeholder="Enter your security pin", type="password", key="password")
             
-            login_button = st.form_submit_button("Find your pulse!", use_container_width=True)
+            login_button = st.form_submit_button("Find your school pulse!", use_container_width=True)
 
             # Use columns for the other two actions
             col_b1, col_b2 = st.columns(2)
