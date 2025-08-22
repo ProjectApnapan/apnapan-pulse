@@ -5,7 +5,7 @@ A full-stack web app built with Streamlit, Python, Pandas, Plotly, and MongoDB t
 
 Live Demo
 
-Try it live at Apnapan Insights Platform. ([https://datainsighttool.streamlit.app/])
+Try it live at Apnapan Insights Platform. (https://apnapanpulse.streamlit.app/)
 
 Secure Authentication: User login and account creation with Google Sheets API and MongoDB.
 Data Analysis: Process survey data with Pandas and visualize metrics (e.g., Safety, Respect) using Plotly.
